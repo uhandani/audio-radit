@@ -1,0 +1,83 @@
+{
+  "name": "pria-jakarta-santai",
+  "description": "Pria Indonesia, nada rendah-hangat, ngobrol santai ala Jakarta, ekspresif dan agak cepat, kalimat mengalir hampir tanpa jeda",
+  "gender": "male",
+  "pitch": {
+    "median_hz": 119.4,
+    "range_global_st": 10.5,
+    "range_phrase_st": 7.7,
+    "peak_position": 0.29
+  },
+  "tempo": {
+    "articulation_syl_s": 6.64
+  },
+  "pauses": {
+    "sentence_s": 0.23,
+    "paragraph_s": 0.5,
+    "ellipsis_s": 0.62
+  },
+  "endings": {
+    "datar": 0.5,
+    "naik": 0.27,
+    "turun": 0.23
+  },
+  "levels": {
+    "tenang": {
+      "n": 1,
+      "pitch_rel_st": -0.71,
+      "range_st": 5.1,
+      "speed_rel": 1.036,
+      "loudness_rel_db": -1.09
+    },
+    "santai": {
+      "n": 8,
+      "pitch_rel_st": -0.25,
+      "range_st": 6.93,
+      "speed_rel": 0.931,
+      "loudness_rel_db": -0.39
+    },
+    "netral": {
+      "n": 16,
+      "pitch_rel_st": 0.37,
+      "range_st": 7.97,
+      "speed_rel": 0.992,
+      "loudness_rel_db": 0.12
+    },
+    "antusias": {
+      "n": 4,
+      "pitch_rel_st": 0.82,
+      "range_st": 8.87,
+      "speed_rel": 1.163,
+      "loudness_rel_db": 0.41
+    },
+    "sangat antusias": {
+      "n": 1,
+      "pitch_rel_st": 3.62,
+      "range_st": 10.69,
+      "speed_rel": 1.005,
+      "loudness_rel_db": 0.68
+    }
+  },
+  "style_words": {
+    "gue": 11,
+    "jadi": 8,
+    "gua": 5,
+    "kayak": 5,
+    "banget": 3,
+    "udah": 3,
+    "aja": 3,
+    "gak": 3,
+    "nggak": 3,
+    "nah": 2,
+    "ya": 2,
+    "ga": 2,
+    "kalian": 1,
+    "sih": 1,
+    "kok": 1,
+    "terus": 1,
+    "bener-bener": 1,
+    "gimana": 1,
+    "oke": 1
+  },
+  "avg_sentence_words": 14.0
+}

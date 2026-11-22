@@ -1,11 +1,12 @@
 ---
 name: voice-template-extractor
-description: Extract a speaker's voice from a video or audio file into a reusable text-to-speech voice template — a clean cloning sample for ElevenLabs (or any voice-clone TTS) plus a measured profile of their pitch, intonation, tempo, pauses and emotion, so generated voice-overs sound natural instead of flat. Also writes new scripts in that same speaking style with ElevenLabs audio tags. Use this whenever the user uploads a video/audio (mp4, mov, mp3, wav, Instagram/TikTok/YouTube download) and wants to clone the voice, make a voice template, "ambil suaranya", "ekstrak audio buat TTS", "voice clone", "biar suaranya natural / tidak kaku", copy someone's speaking style, tone, intonation or emotion, or when they want to turn a script into TTS-ready text that matches a voice template they made earlier (voice_profile.json / VOICE_TEMPLATE.md).
+description: Extract a speaker's speaking style from a video or audio file into a reusable text-to-speech template — pitch, intonation, tempo, pauses and emotion — and turn scripts into natural Indonesian voice-overs with a built-in offline TTS (no ElevenLabs needed), or prepare clean samples and settings for ElevenLabs. Also writes new scripts in that style with emotion tags. Use this whenever the user uploads a video/audio (mp4, mov, mp3, wav, Instagram/TikTok/YouTube download) and wants a voice template, "ambil suaranya", "ekstrak audio buat TTS", "voice clone", "biar suaranya natural / tidak kaku", to copy a speaking style, tone, intonation or emotion, or when they want a voice-over / "isi suara" / "text to speech" / "bikin VO" for a video or script, especially using a style or template made earlier (styles/*.json, voice_profile.json, VOICE_TEMPLATE.md).
 ---
 
 # Voice Template Extractor
 
-Turns a talking video into two things the user can reuse for every future video:
+Turns a talking video into reusable pieces for every future video (and, with Mode C, speaks new
+scripts in that style offline):
 
 1. **The voice** — a cleaned, music-free, loudness-normalised speech sample ready to upload as an
    ElevenLabs Instant Voice Clone (works for other cloning TTS too).
@@ -111,6 +112,59 @@ When the user gives a topic or a plain script and has a template (`voice_profile
    followed.
 
 Read `references/elevenlabs-guide.md` before writing tags or settings — the rules differ by model.
+
+## Mode C — make the voice-over offline (no ElevenLabs)
+
+`speak.py` turns a narration script into a finished voice-over. A multi-speaker Indonesian VITS
+model (83 voices, trained on open Javanese/Sundanese speech datasets) does the speaking. The
+stored **style** then reshapes it with Praat PSOLA:
+- pitch level and range;
+- the speaker's phrase shape (starts high, glides down);
+- endings: rising on `?`, held up mid-story, falling at the end of a paragraph;
+- each emotion tag's pitch/tempo/loudness, blended with what the analysed speaker actually did
+  at that energy level;
+- the pause rhythm.
+
+Whisper listens to every sentence. Up to 4 takes are made, and the clearest one is kept.
+
+1. **Save the style once** after Mode A: `python $S/make_style.py OUT --name <style-name>`. This
+   writes `styles/<style-name>.json`. It holds only numbers (no audio, no voice identity), so
+   it's the way to reuse a creator's *delivery* without cloning their voice.
+   `styles/pria-jakarta-santai.json` ships with the skill.
+2. **Write the narration** with Mode B. Save it as a plain text file that contains **only the
+   spoken lines**, with v3-style tags. Keep notes and settings out of it; markdown headings and
+   bullets are skipped anyway.
+3. **Respell hard words** in a lexicon JSON. Foreign names, acronyms and brand names usually
+   need it. Plain respelling (`"Descartes": "Dekart"`) or raw phonemes with a leading slash
+   (`"Descartes": "/dekart"`). The phoneme set is `a b d e f h i j k l m n o p r s t u w x z ŋ ɔ ə ɛ ɡ ɪ ɲ ʃ ʊ ʒ ʔ`,
+   with `tʃ` = c and `dʒ` = j. Common slang (gue, gak, banget…) is built in.
+4. **Generate and check:**
+   ```bash
+   python $S/speak.py narasi.txt --out OUT/voiceover.wav --style pria-jakarta-santai --lexicon lexicon.json
+   python $S/check_tts.py OUT/voiceover.wav
+   ```
+   This writes `voiceover.wav/.mp3` (−16 LUFS, ready for social video), `voiceover.timing.json`
+   (sentence and word timings, for animating and captions) and `voiceover.srt`.
+5. **Read the check, since you can't listen.** Compare pitch/tempo with the style, then look at
+   the per-sentence clarity scores. For any line flagged `kurang jelas` or `<-- cek`, rephrase
+   it or add a lexicon entry, then regenerate. ASR also mishears respelled foreign names, so a
+   low score on a name alone is not a defect. Expect about 0.8 average clarity.
+6. **Options:**
+   - `--speaker` picks another voice: `--list-speakers` shows them all. Clear male voices:
+     JV-01932 (default), JV-00027, SU-01552. A female style defaults to JV-01519.
+   - `--seed` gives repeatable output for the same text.
+   - `--takes 1` is faster but has no clarity selection.
+
+Supported emotion tags: excited, surprised, enthusiastic, happy, playful, confident, curious,
+serious, matter-of-fact, warm, sincere, reassuring, calm, thoughtful, sad, whispers, softly,
+quickly, slowly, emphasized, conversational tone. Non-verbal tags ([laughs], [sighs]) are
+skipped. Tell the user the honest trade-off: this is clearly a synthetic voice. It keeps the
+style's rhythm and emotion, but it is not as lifelike as ElevenLabs.
+
+Setup for Mode C: `python $S/setup_env.py --tts`. This makes its own venv with
+torch + Coqui TTS (several GB) and downloads the model from GitHub. `speak.py` re-launches
+itself inside that venv automatically. The model weights come from a community GitHub release,
+so for commercial use, check its license and the licenses of the underlying datasets.
 
 ## Troubleshooting
 

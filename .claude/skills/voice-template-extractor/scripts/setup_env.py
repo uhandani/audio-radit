@@ -4,6 +4,8 @@
 Usage:
   python setup_env.py                 # check + install python deps + VAD model
   python setup_env.py --separator     # also fetch vocal/music separator model (~65 MB)
+  python setup_env.py --tts           # offline Indonesian TTS engine (speak.py): own venv with
+                                      # torch + Coqui TTS + 83-voice Indonesian VITS (~1-6 GB)
   python setup_env.py --sherpa-whisper  # also fetch Whisper-small ONNX (GitHub mirror,
                                         # for machines where HuggingFace is blocked)
 
@@ -65,12 +67,42 @@ def download(url: str, dest: Path) -> None:
     tmp.rename(dest)
 
 
+TTS_DIR = CACHE_DIR / "id-tts-vits"
+TTS_URL = "https://github.com/Wikidepia/indonesian-tts/releases/download/v1.2"
+TTS_FILES = ["config.json", "speakers.pth", "checkpoint_1260000-inference.pth"]
+TTS_PKGS = ["coqui-tts", "torchcodec", "six", "g2p-id-py", "praat-parselmouth", "sherpa-onnx",
+            "soundfile", "librosa"]
+
+
+def setup_tts() -> None:
+    """Separate venv: torch/Coqui pin many packages that would clash with the main env."""
+    venv = CACHE_DIR / "venv-tts"
+    py = venv / "bin" / "python"
+    if not py.exists():
+        log("membuat venv TTS")
+        subprocess.run([sys.executable, "-m", "venv", str(venv)], check=True)
+        subprocess.run([str(py), "-m", "pip", "install", "-q", "-U", "pip", "setuptools", "wheel"], check=True)
+    ok = subprocess.run([str(py), "-c", "import torch, torchaudio"], capture_output=True).returncode == 0
+    if not ok:
+        log("install torch (CPU) — bisa beberapa menit")
+        r = subprocess.run([str(py), "-m", "pip", "install", "-q", "torch", "torchaudio",
+                            "--index-url", "https://download.pytorch.org/whl/cpu"])
+        if r.returncode != 0:  # CPU index unreachable -> default PyPI wheels (bigger)
+            subprocess.run([str(py), "-m", "pip", "install", "-q", "torch", "torchaudio"], check=True)
+    subprocess.run([str(py), "-m", "pip", "install", "-q", *TTS_PKGS], check=True)
+    for f in TTS_FILES:
+        if not (TTS_DIR / f).exists():
+            download(f"{TTS_URL}/{f}", TTS_DIR / f)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sherpa-whisper", action="store_true",
                     help="download Whisper-small ONNX from GitHub (fallback transcriber)")
     ap.add_argument("--separator", action="store_true",
                     help="download MDX-Net vocal model (~65 MB) to strip background music")
+    ap.add_argument("--tts", action="store_true",
+                    help="install the offline TTS engine used by speak.py (separate venv)")
     ap.add_argument("--with-faster-whisper", action="store_true",
                     help="pip install faster-whisper (best transcriber, needs HuggingFace access)")
     ap.add_argument("--with-demucs", action="store_true",
@@ -103,6 +135,10 @@ def main() -> None:
         for f in SHERPA_WHISPER_DIR.glob("small-*coder.onnx"):
             f.unlink()
 
+    if args.tts:
+        setup_tts()
+        args.sherpa_whisper = True  # speak.py uses it to pick the clearest take
+
     status = {m: "ok" for m in PY_DEPS}
     for mod, pipname in OPTIONAL.items():
         try:
@@ -112,6 +148,14 @@ def main() -> None:
             status[mod] = f"not installed (optional: pip install {pipname})"
     status["vad_model"] = str(VAD_MODEL) if VAD_MODEL.exists() else "missing"
     status["vocal_separator"] = str(MDX_MODEL) if MDX_MODEL.exists() else "missing (--separator)"
+    if args.sherpa_whisper and not (SHERPA_WHISPER_DIR / "small-tokens.txt").exists():
+        tarpath = CACHE_DIR / "sherpa-onnx-whisper-small.tar.bz2"
+        download(f"{GH}/sherpa-onnx-whisper-small.tar.bz2", tarpath)
+        with tarfile.open(tarpath) as t:
+            t.extractall(CACHE_DIR, filter="data")
+        tarpath.unlink()
+    venv_py = CACHE_DIR / "venv-tts" / "bin" / "python"
+    status["tts_engine"] = "ok" if (venv_py.exists() and (TTS_DIR / TTS_FILES[-1]).exists()) else "missing (--tts)"
     status["sherpa_whisper"] = (str(SHERPA_WHISPER_DIR)
                                 if (SHERPA_WHISPER_DIR / "small-tokens.txt").exists() else "missing")
     for k, v in status.items():

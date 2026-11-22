@@ -6,10 +6,22 @@ dan emosi** pembicara supaya hasil TTS terdengar natural dan tidak kaku.
 
 Skill: [`.claude/skills/voice-template-extractor`](.claude/skills/voice-template-extractor/SKILL.md)
 
+## Text-to-speech offline (tanpa ElevenLabs)
+Gaya bicara yang sudah dianalisis disimpan di `styles/` (hanya angka: nada, intonasi, tempo, jeda, emosi).
+Gaya itu dipakai untuk membacakan naskah baru dengan suara TTS bahasa Indonesia yang berjalan di komputer sendiri:
+
+```bash
+S=.claude/skills/voice-template-extractor/scripts
+python $S/setup_env.py --tts                       # sekali saja
+python $S/speak.py narasi.txt --out vo.wav --style pria-jakarta-santai --lexicon lexicon.json
+python $S/check_tts.py vo.wav                      # cek nada/tempo + kejelasan
+```
+Hasilnya `vo.wav`/`vo.mp3`, subtitle `vo.srt`, dan `vo.timing.json` (waktu per kata untuk animasi video).
+
 ## Pakai
 - Buka repo ini di Claude Code (skill otomatis terbaca), atau salin foldernya ke `~/.claude/skills/`.
 - Upload video, lalu tulis misalnya: *"ekstrak suara dari video ini jadi template TTS ElevenLabs"*.
-- Untuk konten berikutnya: *"ubah naskah ini ke gaya template <nama>"*.
+- Untuk konten berikutnya: *"ubah naskah ini ke gaya template <nama>"*, atau *"bikin voice-over naskah ini pakai gaya pria-jakarta-santai"*.
 
 ## Hasil per video (`voice-output/<nama>/`)
 | File | Isi |
