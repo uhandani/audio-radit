@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+voice-output/
+*.wav
+*.mp3
+*.mp4
